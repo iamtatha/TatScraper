@@ -1,0 +1,31 @@
+# List of LinkedIn pages/profiles/company feeds to scrape.
+# Examples:
+#   - "https://www.linkedin.com/company/google/posts/"
+#   - "https://www.linkedin.com/in/some-person/recent-activity/shares/"
+#   - "https://www.linkedin.com/feed/"   (your own home feed)
+target_urls:
+  - "https://www.linkedin.com/feed/"
+  # - "https://www.linkedin.com/company/google/posts/"
+
+# Search queries. Will search for content posts matching each term.
+searches: []
+  # - "Flat Bangalore"
+  # - "Machine Learning jobs"
+
+stopping:
+  max_posts: 20          # Stop after collecting this many posts (null = no limit)
+  max_scrolls: 10        # Stop after this many scroll actions (null = no limit)
+  max_time_seconds: 300  # Stop after this many seconds (null = no limit)
+
+
+browser:
+  keep_open: true        # Keep browser open after scraping
+  mfa_sleep: 30          # Seconds to wait for 2FA during login
+  restart: false         # Force a fresh session (clears saved login)
+
+
+output:
+  # Base folder for exported JSON files (relative to scrapers/ root)
+  export_folder: "exports"
+  # Custom filename prefix. Leave as null to auto-generate with timestamp.
+  filename_prefix: null

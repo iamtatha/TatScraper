@@ -35,8 +35,7 @@ try {
     if(!articles.length) articles = Array.from(document.querySelectorAll('div[role="article"]'));
     if(!articles.length) return [];
 
-
-    // 2. Extract each article
+    // Extract each article
     let results = [];
     articles.forEach(article => {
 
@@ -59,23 +58,59 @@ try {
         }
 
         // --- TIMESTAMP & POST LINK ---
+        // Strategy: try increasingly broad patterns, ending with the timestamp anchor
+        // which is ALWAYS present on every Facebook post and always points to the post.
         let timestamp = '';
         let postLink = '';
-        article.querySelectorAll('a[href*="/posts/"], a[href*="/permalink/"], a[href*="story_fbid"]').forEach(el => {
+
+        // Pass 1: clean /posts/ or /permalink/ links
+        article.querySelectorAll('a[href*="/posts/"], a[href*="/permalink/"]').forEach(el => {
             let href = el.getAttribute('href') || '';
             let txt = (el.textContent || '').trim();
-            if(!timestamp && txt && txt.length < 20 && /[0-9]/.test(txt)) timestamp = txt;
+            if(!timestamp && txt && txt.length < 25 && /[0-9]/.test(txt)) timestamp = txt;
             if(!postLink) {
                 let clean = href.split('?')[0];
-                if(clean && clean.includes('/posts/')) postLink = clean;
+                if(clean) postLink = clean.startsWith('http') ? clean : 'https://www.facebook.com' + clean;
             }
         });
+
+        // Pass 2: story_fbid (mobile/share format)
         if(!postLink) {
-            article.querySelectorAll('a').forEach(el => {
+            article.querySelectorAll('a[href*="story_fbid"]').forEach(el => {
                 if(!postLink) {
                     let href = el.getAttribute('href') || '';
-                    if(href.includes('/groups/') && href.includes('/posts/'))
-                        postLink = href.split('?')[0];
+                    if(href) postLink = href.startsWith('http') ? href : 'https://www.facebook.com' + href;
+                }
+            });
+        }
+
+        // Pass 3: video posts
+        if(!postLink) {
+            article.querySelectorAll('a[href*="/videos/"]').forEach(el => {
+                if(!postLink) {
+                    let href = el.getAttribute('href') || '';
+                    let clean = href.split('?')[0];
+                    if(clean) postLink = clean.startsWith('http') ? clean : 'https://www.facebook.com' + clean;
+                }
+            });
+        }
+
+        // Pass 4 (universal fallback): the timestamp anchor link.
+        // Every Facebook post has a relative-time link ("2h", "1d", "Monday") that
+        // ALWAYS points to the post's canonical permalink — use it as the final fallback.
+        if(!postLink) {
+            article.querySelectorAll('a[href]').forEach(el => {
+                if(postLink) return;
+                let txt = (el.textContent || '').trim();
+                let href = el.getAttribute('href') || '';
+                let isTimestamp = txt.length > 0 && txt.length < 25 && (
+                    /\d/.test(txt) ||
+                    /^(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday|Yesterday|Just now)$/i.test(txt)
+                );
+                if(isTimestamp && href) {
+                    if(!timestamp) timestamp = txt;
+                    postLink = href.startsWith('http') ? href.split('?')[0]
+                                                       : 'https://www.facebook.com' + href.split('?')[0];
                 }
             });
         }
@@ -251,7 +286,6 @@ def scrape_posts(driver, max_posts=None, max_scrolls=None, max_time_seconds=None
             all_posts = driver.execute_script(EXTRACT_JS)
             
             if all_posts:
-                new_count = 0
                 for post_js in all_posts:
                     if '_error' in post_js:
                         print('JS Error:', post_js['_error'])
@@ -260,17 +294,22 @@ def scrape_posts(driver, max_posts=None, max_scrolls=None, max_time_seconds=None
                     if not post_js.get('post_text') and post_js.get('author') == 'Unknown':
                         continue
                     
-                    # Dedup: if the post has a permalink, skip if already seen
-                    link = f"{post_js.get('author', '').strip()}_{post_js.get('post_text', '').strip().lower()[:50]}"
-                    print(link)
+                    # Dedup by post permalink (most reliable); fall back to author+text slice
+                    link = post_js.get('main_link', '')
                     if link:
                         if link in seen_keys:
                             continue
                         seen_keys.add(link)
+                    else:
+                        # Fallback key so we still dedup across scrolls when link is missing
+                        fallback_key = f"{post_js.get('author', '').strip()}_{post_js.get('post_text', '').strip().lower()[:80]}"
+                        if fallback_key in seen_keys:
+                            continue
+                        seen_keys.add(fallback_key)
+
                     post_data = {"extracted_at": time.time()}
                     post_data.update(post_js)
                     scraped_posts.append(post_data)
-                    new_count += 1
                     
                     if max_posts and (len(scraped_posts) - initial_count) >= max_posts:
                         print(f"Post limit reached ({len(scraped_posts) - initial_count} / {max_posts}). Stopping scrape.")
@@ -280,7 +319,7 @@ def scrape_posts(driver, max_posts=None, max_scrolls=None, max_time_seconds=None
         except Exception as e:
             print(f"Encountered an issue parsing posts: {e}")
 
-        # 5. Scroll down by one viewport height
+        # 6. Scroll down by one viewport height
         print(f"Scrolling down... (Scroll {scroll_count + 1})  [collected {len(scraped_posts)} posts so far]")
         driver.execute_script("window.scrollBy(0, window.innerHeight);")
         scroll_count += 1

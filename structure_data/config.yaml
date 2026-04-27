@@ -1,0 +1,30 @@
+input_json: "exports/scraped_posts_20260427_200326.json"
+output_csv: "structured_output.csv"
+sample_size: null  # Set to a number to process only N records, or null to process all
+
+# Keys from the JSON whose values should be combined and sent to the LLM
+text_keys_to_read:
+  - "post_text"
+
+# Keys to just copy straight into the CSV unmodified
+keep_keys:
+  - "has_attachment"
+  - "author"
+  - "main_link"
+  - "post_text"
+
+prompt_file: "fb_flat_prompt.txt"
+
+# LLM Configuration
+# To use Ollama locally, uncomment the Ollama block and comment out OpenAI.
+llm:
+  provider: "openai" # "openai" or "ollama"
+  model: "gpt-5-nano"   # "llama3" or "gpt-5-nano"
+  api_key_env_var: null
+  base_url: "http://localhost:11434/v1" # Ollama's OpenAI compatible endpoint
+
+# llm:
+#   provider: "openai"
+#   model: "gpt-4o-mini"
+#   api_key_env_var: "OPENAI_API_KEY"
+#   base_url: null
