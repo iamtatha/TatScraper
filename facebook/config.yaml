@@ -1,15 +1,12 @@
 # List of Facebook pages/groups to scrape.
 # Accepts full URLs. Leave empty to scrape the home feed.
-target_urls:
-  - "https://www.facebook.com/groups/2693327660749392"
-  # - "https://www.facebook.com/groups/another_group"
+target_urls: []
+#  - "https://www.facebook.com/groups/2693327660749392"
+#  - "https://www.facebook.com/groups/another_group"
 
 # Facebook searches to run.
-# Each query navigates to https://facebook.com/search/top/?q=<query> and scrapes that result feed.
 searches:
-  []
-  # - "Machine Learning Bangalore"
-
+  - "Flat Bangalore"
 
 stopping:
   max_posts: 20          # Stop after collecting this many posts (null = no limit)
