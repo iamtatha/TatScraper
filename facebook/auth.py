@@ -5,7 +5,7 @@ from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.chrome.options import Options
-from utils import get_human_delay, human_typing
+from facebook.utils import get_human_delay, human_typing
 
 def init_browser(auto_close=True, restart=False):
     """

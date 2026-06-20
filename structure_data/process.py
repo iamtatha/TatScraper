@@ -1,8 +1,11 @@
+from datetime import datetime
 import os
 import sys
 import json
 import yaml
 import csv
+import pandas as pd
+from pathlib import Path
 import subprocess
 from openai import OpenAI
 from dotenv import load_dotenv
@@ -48,6 +51,8 @@ def process_data():
     # Ollama acts as an OpenAI-compatible endpoint at http://localhost:11434/v1
     api_key = "dummy_key_for_ollama" if provider == "ollama" else os.getenv(api_key_env_var or "OPENAI_API_KEY")
 
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    output_csv_path = output_csv_path.replace('TIMESTAMP', timestamp)
 
     if not api_key:
         print(f"Error: API Key needed. Export {api_key_env_var} or set properly for {provider}.")
@@ -207,6 +212,18 @@ def process_data():
                 print(f"\nDone! Structured data saved to {output_csv_path}")
             except Exception as e:
                 print(f"Error saving CSV: {e}")
+
+
+            try:
+                output_xlsx_path = str(Path(output_csv_path).with_suffix(".xlsx"))
+
+                df = pd.DataFrame(results, columns=fieldnames)
+                df.to_excel(output_xlsx_path, index=False)
+
+                print(f"\nDone! Structured data saved to {output_xlsx_path}")
+
+            except Exception as e:
+                print(f"Error saving Excel file: {e}")
 
     finally:
         # Cleanup Ollama model

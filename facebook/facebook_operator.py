@@ -2,9 +2,17 @@ import os
 import re
 import argparse
 import yaml
+
+from pathlib import Path
+import sys
+
+ROOT_DIR = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT_DIR))
+
+
 from dotenv import load_dotenv
-from auth import init_browser, login_to_facebook
-from scraper import perform_scraping
+from facebook.auth import init_browser, login_to_facebook
+from facebook.scraper import perform_scraping
 
 # Load environment variables
 load_dotenv()

@@ -2,6 +2,15 @@ import os
 import re
 import argparse
 import yaml
+
+
+from pathlib import Path
+import sys
+
+ROOT_DIR = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT_DIR))
+
+
 from dotenv import load_dotenv
 from auth import init_browser, login_to_linkedin
 from scraper import perform_scraping
@@ -91,6 +100,33 @@ def main():
                 scraped_posts=global_posts,
                 seen_keys=global_seen_keys,
             )
+
+        # Run job search queries
+        jobs = cfg.get("jobs") or []
+        if jobs:
+            # Import job scraper here to avoid circular dependencies if any
+            from job_scraper import perform_job_scraping
+            
+            job_export_path = os.path.join(root, export_folder, f"jobs_{filename_prefix}.json")
+            global_jobs = []
+            global_seen_jobs = set()
+            
+            for query in jobs:
+                encoded = urllib.parse.quote(query)
+                # LinkedIn job search URL
+                job_search_url = f"https://www.linkedin.com/jobs/search/?keywords={encoded}"
+                # job_search_url = f"https://www.linkedin.com/jobs"
+
+                perform_job_scraping(
+                    driver,
+                    target_url=job_search_url,
+                    export_path=job_export_path,
+                    max_jobs=max_posts,
+                    max_scrolls=max_scrolls,
+                    max_time_seconds=max_time_seconds,
+                    scraped_jobs=global_jobs,
+                    seen_keys=global_seen_jobs,
+                )
 
     except Exception as e:
         print(f"\nFatal error: {e}")
